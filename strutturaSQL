@@ -1,0 +1,234 @@
+-- Creazione del database
+CREATE DATABASE IF NOT EXISTS serverfuturo
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE serverfuturo;
+
+-- Tabella Utenti
+CREATE TABLE utenti (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    nome VARCHAR(100),
+    cognome VARCHAR(100),
+    telefono VARCHAR(20),
+    indirizzo VARCHAR(255),
+    citta VARCHAR(100),
+    cap VARCHAR(10),
+    stato VARCHAR(50),
+    data_registrazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ultimo_accesso DATETIME,
+    stato_account ENUM('attivo', 'sospeso', 'eliminato') DEFAULT 'attivo',
+    ruolo ENUM('utente', 'admin', 'moderatore') DEFAULT 'utente',
+    foto_profilo VARCHAR(255),
+    biografia TEXT,
+    preferenze JSON,
+    verificato BOOLEAN DEFAULT FALSE,
+    codice_verifica VARCHAR(100),
+    scadenza_codice DATETIME,
+    INDEX idx_email (email),
+    INDEX idx_stato_account (stato_account),
+    INDEX idx_ruolo (ruolo)
+) ENGINE=InnoDB;
+
+-- Tabella Abbonamenti
+CREATE TABLE abbonamenti (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    descrizione TEXT,
+    prezzo DECIMAL(10,2) NOT NULL,
+    durata_giorni INT NOT NULL,
+    max_dispositivi INT NOT NULL,
+    caratteristiche JSON,
+    attivo BOOLEAN DEFAULT TRUE,
+    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_modifica DATETIME ON UPDATE CURRENT_TIMESTAMP,
+    priorita INT DEFAULT 0,
+    INDEX idx_prezzo (prezzo),
+    INDEX idx_attivo (attivo)
+) ENGINE=InnoDB;
+
+-- Tabella Sottoscrizioni Utenti
+CREATE TABLE utenti_abbonamenti (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT NOT NULL,
+    abbonamento_id INT NOT NULL,
+    data_inizio DATETIME NOT NULL,
+    data_fine DATETIME NOT NULL,
+    data_attivazione DATETIME,
+    stato ENUM('attivo', 'scaduto', 'cancellato', 'sospeso') DEFAULT 'attivo',
+    pagamento_id INT,
+    auto_rinnovo BOOLEAN DEFAULT FALSE,
+    dati_aggiuntivi JSON,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE CASCADE,
+    FOREIGN KEY (abbonamento_id) REFERENCES abbonamenti(id) ON DELETE RESTRICT,
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_abbonamento_id (abbonamento_id),
+    INDEX idx_stato (stato),
+    INDEX idx_data_fine (data_fine)
+) ENGINE=InnoDB;
+
+-- Tabella Dispositivi
+CREATE TABLE dispositivi (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT NOT NULL,
+    nome VARCHAR(100) NOT NULL,
+    tipo ENUM('smartphone', 'tablet', 'computer', 'smart_tv', 'altro') DEFAULT 'altro',
+    sistema_operativo VARCHAR(50),
+    versione_os VARCHAR(20),
+    browser VARCHAR(50),
+    versione_browser VARCHAR(20),
+    dispositivo_identificator VARCHAR(255) UNIQUE,
+    ip_address VARCHAR(45),
+    localizzazione VARCHAR(255),
+    data_registrazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ultimo_utilizzo DATETIME,
+    stato ENUM('attivo', 'inattivo', 'bloccato') DEFAULT 'attivo',
+    configurazione JSON,
+    note TEXT,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE CASCADE,
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_stato (stato),
+    INDEX idx_tipo (tipo),
+    INDEX idx_dispositivo_identificator (dispositivo_identificator)
+) ENGINE=InnoDB;
+
+-- Tabella Pagamenti
+CREATE TABLE pagamenti (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT NOT NULL,
+    abbonamento_id INT NOT NULL,
+    importo DECIMAL(10,2) NOT NULL,
+    metodo_pagamento ENUM('carta_credito', 'paypal', 'bonifico', 'altro') NOT NULL,
+    stato ENUM('in_attesa', 'completato', 'fallito', 'rimborsato') DEFAULT 'in_attesa',
+    transazione_id VARCHAR(255),
+    data_transazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_completamento DATETIME,
+    dati_fatturazione JSON,
+    note TEXT,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE CASCADE,
+    FOREIGN KEY (abbonamento_id) REFERENCES abbonamenti(id) ON DELETE RESTRICT,
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_abbonamento_id (abbonamento_id),
+    INDEX idx_stato (stato),
+    INDEX idx_data_transazione (data_transazione),
+    INDEX idx_transazione_id (transazione_id)
+) ENGINE=InnoDB;
+
+-- Tabella Sessioni (per gestire i login)
+CREATE TABLE sessioni (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT NOT NULL,
+    dispositivo_id INT,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    ip_address VARCHAR(45),
+    user_agent VARCHAR(255),
+    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_scadenza DATETIME NOT NULL,
+    attiva BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE CASCADE,
+    FOREIGN KEY (dispositivo_id) REFERENCES dispositivi(id) ON DELETE SET NULL,
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_token (token),
+    INDEX idx_attiva (attiva),
+    INDEX idx_data_scadenza (data_scadenza)
+) ENGINE=InnoDB;
+
+-- Tabella Logs (per tracciare le attività)
+CREATE TABLE logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT,
+    tipo_evento VARCHAR(50) NOT NULL,
+    descrizione TEXT,
+    ip_address VARCHAR(45),
+    user_agent VARCHAR(255),
+    dati_aggiuntivi JSON,
+    data_evento DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE SET NULL,
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_tipo_evento (tipo_evento),
+    INDEX idx_data_evento (data_evento)
+) ENGINE=InnoDB;
+
+-- Tabella Notifiche
+CREATE TABLE notifiche (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT NOT NULL,
+    titolo VARCHAR(255) NOT NULL,
+    messaggio TEXT,
+    tipo ENUM('info', 'warning', 'errore', 'successo') DEFAULT 'info',
+    stato ENUM('non_letta', 'letta', 'archiviata') DEFAULT 'non_letta',
+    priorita INT DEFAULT 0,
+    data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data_lettura DATETIME,
+    dati_extra JSON,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE CASCADE,
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_stato (stato),
+    INDEX idx_tipo (tipo),
+    INDEX idx_data_creazione (data_creazione)
+) ENGINE=InnoDB;
+
+-- Tabella Configurazioni di Sistema
+CREATE TABLE configurazioni (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    chiave VARCHAR(100) NOT NULL UNIQUE,
+    valore TEXT,
+    tipo VARCHAR(50),
+    descrizione TEXT,
+    modificabile BOOLEAN DEFAULT TRUE,
+    data_aggiornamento DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_chiave (chiave)
+) ENGINE=InnoDB;
+
+-- Tabella per Audit Trail (opzionale ma consigliata)
+CREATE TABLE audit_trail (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT,
+    azione VARCHAR(100) NOT NULL,
+    tabella VARCHAR(50),
+    record_id INT,
+    valori_precedenti JSON,
+    valori_nuovi JSON,
+    ip_address VARCHAR(45),
+    data_ora DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE SET NULL,
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_azione (azione),
+    INDEX idx_tabella (tabella),
+    INDEX idx_data_ora (data_ora)
+) ENGINE=InnoDB;
+
+-- Tabella Impostazioni Utente
+CREATE TABLE impostazioni_utente (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utente_id INT NOT NULL,
+    chiave VARCHAR(100) NOT NULL,
+    valore TEXT,
+    tipo VARCHAR(50),
+    data_modifica DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_setting (utente_id, chiave),
+    INDEX idx_utente_id (utente_id),
+    INDEX idx_chiave (chiave)
+) ENGINE=InnoDB;
+
+-- Inserimento di alcune configurazioni di sistema di default
+INSERT INTO configurazioni (chiave, valore, tipo, descrizione, modificabile) VALUES
+('max_dispositivi_per_utente', '5', 'integer', 'Massimo numero di dispositivi per utente', TRUE),
+('durata_sessione', '7200', 'integer', 'Durata della sessione in secondi', TRUE),
+('abilita_registrazione', 'true', 'boolean', 'Permette la registrazione di nuovi utenti', TRUE),
+('versione_app', '1.0.0', 'string', 'Versione attuale dell''applicazione', FALSE),
+('email_admin', 'admin@serverfuturo.com', 'string', 'Email dell''amministratore di sistema', TRUE),
+('manutenzione', 'false', 'boolean', 'Modalità manutenzione', TRUE);
+
+-- Creazione di un utente admin di default
+INSERT INTO utenti (email, password_hash, nome, cognome, ruolo, verificato) VALUES
+('admin@serverfuturo.com', '$2b$10$hashedpassword', 'Admin', 'System', 'admin', TRUE);
+
+-- Creazione di qualche abbonamento di default
+INSERT INTO abbonamenti (nome, descrizione, prezzo, durata_giorni, max_dispositivi, caratteristiche) VALUES
+('Basic', 'Piano base con funzionalità essenziali', 9.99, 30, 2, '{"features": ["2 dispositivi", "supporto email", "aggiornamenti regolari"]}'),
+('Premium', 'Piano premium con funzionalità avanzate', 19.99, 30, 5, '{"features": ["5 dispositivi", "supporto prioritario", "accesso anticipato alle novità"]}'),
+('Enterprise', 'Piano enterprise per uso aziendale', 49.99, 30, 20, '{"features": ["20 dispositivi", "supporto 24/7", "funzionalità dedicate"]}')

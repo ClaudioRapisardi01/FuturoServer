@@ -1,0 +1,77 @@
+Sto sviluppando una web application chiamata ServerFuturo con la seguente struttura di file:
+ServerFuturo/
+├── .venv/
+├── blueprints/
+│   ├── __init__.py
+│   ├── abbonamenti.py
+│   ├── admin.py
+│   ├── api.py
+│   ├── applicazione.py
+│   ├── dispositivi.py
+│   └── user.py
+├── templates/
+├── External Libraries/
+└── Scratches and Consoles/
+ARCHITETTURA DELL'APPLICAZIONE:
+
+app.py: Il cuore dell'applicazione (file principale)
+db.py: Gestisce le query al database MySQL con due metodi principali:
+
+EXECUTE(): Per eseguire query che modificano i dati
+READDATA(): Per eseguire query che restituiscono dati
+
+
+I file in blueprints/ gestiscono diverse funzionalità:
+
+user.py: Gestione utenti
+dispositivi.py: Gestione dispositivi
+abbonamenti.py: Gestione abbonamenti
+api.py: API REST per ricevere informazioni da dispositivi esterni
+applicazione.py: Logica principale dell'applicazione
+admin.py: Pannello di amministrazione
+
+
+
+DATABASE MySQL CREATO:
+Il database serverfuturo è già stato creato con le seguenti tabelle principali:
+
+utenti: Gestione utenti con ruoli, stati, verifiche
+abbonamenti: Piani di abbonamento disponibili
+utenti_abbonamenti: Collegamento utenti-abbonamenti attivi
+dispositivi: Registrazione e gestione dispositivi utente
+pagamenti: Transazioni e metodi di pagamento
+sessioni: Gestione sessioni di login
+logs: Tracciamento eventi sistema
+notifiche: Sistema di notifiche utente
+configurazioni: Impostazioni di sistema
+audit_trail: Tracciamento modifiche
+impostazioni_utente: Preferenze personalizzate
+
+SCHEMA DATABASE COMPLETO: [Lo schema SQL completo è stato creato con tutte le relazioni, indici e dati di default]
+PROSSIMI PASSI:
+
+Implementare il file db.py con i metodi EXECUTE() e READDATA()
+Creare app.py come file principale dell'applicazione
+Implementare i blueprint per gestire le diverse funzionalità
+Creare i template per il frontend
+Implementare le API per i dispositivi esterni
+
+REQUISITI TECNICI:
+
+Python con Flask
+MySQL come database
+Struttura modulare con blueprint
+Sistema di autenticazione e autorizzazione
+API REST per dispositivi esterni
+Gestione sessioni e sicurezza
+
+CARATTERISTICHE IMPORTANTI:
+
+Sistema di abbonamenti flessibile
+Gestione multi-dispositivo per utente
+Sistema di pagamenti integrato
+Tracciamento attività e audit trail
+Notifiche personalizzate
+Configurazioni di sistema dinamiche
+
+Continua lo sviluppo seguendo questa architettura e implementando prima i file fondamentali db.py e app.py.
