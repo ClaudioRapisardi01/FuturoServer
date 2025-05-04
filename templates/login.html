@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Futuro - Login</title>
+    <style>
+        :root {
+            --primary: #00ffff;
+            --secondary: #ff00ff;
+            --bg-dark: #0a0a0a;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --text: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --error: #ff4444;
+            --success: #44ff44;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animazione di background */
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 98%, var(--primary) 1px) 0 0,
+                        linear-gradient(90deg, transparent 98%, var(--primary) 1px) 0 0;
+            background-size: 30px 30px;
+            opacity: 0.1;
+            z-index: -1;
+            animation: grid-move 20s linear infinite;
+        }
+
+        @keyframes grid-move {
+            from { transform: translate(0, 0); }
+            to { transform: translate(30px, 30px); }
+        }
+
+        /* Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--primary);
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary);
+            opacity: 0.5;
+        }
+
+        /* Login container */
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 2rem;
+            padding: 2rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media (min-width: 640px) {
+            .login-container {
+                padding: 3rem;
+            }
+        }
+
+        /* Border animations */
+        .login-container::before,
+        .login-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid transparent;
+            border-image: linear-gradient(45deg, var(--primary), var(--secondary), var(--primary)) 1;
+            border-image-slice: 1;
+            animation: borderFlow 6s linear infinite;
+        }
+
+        .login-container::after {
+            animation-delay: -3s;
+        }
+
+        @keyframes borderFlow {
+            0% { border-image-source: linear-gradient(45deg, var(--primary), var(--secondary), var(--primary)); }
+            100% { border-image-source: linear-gradient(405deg, var(--primary), var(--secondary), var(--primary)); }
+        }
+
+        /* Logo */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-image {
+            width: 40px;
+            height: 40px;
+            object-fit: contain; /* Mantiene le proporzioni */
+        }
+
+        .brand-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+        }
+
+        .brand-tagline {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* Form */
+        .login-form {
+            position: relative;
+            z-index: 2;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Floating animation for input */
+        .form-control:valid,
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        /* Remember me */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .checkbox:checked {
+            border-color: var(--primary);
+            background: transparent;
+        }
+
+        .checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: -5px;
+            left: 0;
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        .checkbox-label {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            cursor: pointer;
+        }
+
+        /* Submit button */
+        .submit-button {
+            width: 100%;
+            padding: 1rem;
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .submit-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            transition: left 0.3s;
+            z-index: -1;
+        }
+
+        .submit-button:hover::before {
+            left: 0;
+        }
+
+        .submit-button:hover {
+            color: #000;
+        }
+
+        .submit-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Links */
+        .form-links {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .form-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            position: relative;
+            display: inline-block;
+            transition: color 0.3s;
+        }
+
+        .form-link:hover {
+            color: #fff;
+        }
+
+        .form-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+
+        .form-link:hover::after {
+            width: 100%;
+        }
+
+        .form-links p {
+            margin-top: 1rem;
+        }
+
+        /* Error/Success messages */
+        .message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid;
+            text-align: center;
+            font-size: 0.9rem;
+            animation: messageAppear 0.3s ease;
+        }
+
+        .message.error {
+            border-color: var(--error);
+            color: var(--error);
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .message.success {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(68, 255, 68, 0.1);
+        }
+
+        @keyframes messageAppear {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Background effects */
+        .glow-effect {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(20px);
+            z-index: -1;
+            animation: float 5s ease-in-out infinite;
+        }
+
+        .glow-effect:nth-child(odd) {
+            animation-delay: -2.5s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, 30px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="cyber-grid"></div>
+    <div class="particles"></div>
+
+    <!-- Background effects -->
+    <div class="glow-effect" style="top: 20%; left: 10%;"></div>
+    <div class="glow-effect" style="bottom: 20%; right: 10%;"></div>
+
+    <div class="login-container">
+        <div class="logo-container">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1rem;">
+                <h1 class="brand-name">Project Futuro</h1>
+                <img src="/path/to/your/logo.png" alt="Project Futuro Logo" class="logo-image">
+            </div>
+            <p class="brand-tagline">Accedi alla tua dashboard</p>
+        </div>
+
+        <form id="loginForm" class="login-form">
+            <div id="formMessage" class="message" style="display: none;"></div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input type="email" id="email" class="form-control" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="remember" class="checkbox">
+                <label for="remember" class="checkbox-label">Remember me</label>
+            </div>
+
+            <button type="submit" class="submit-button" id="submitButton">
+                Login
+            </button>
+
+            <div class="form-links">
+                <a href="/forgot-password" class="form-link">Forgot password?</a>
+                <p>
+                    Don't have an account?
+                    <a href="/register" class="form-link">Register now</a>
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Create particles
+        function createParticles() {
+            const particles = document.querySelector('.particles');
+            const particleCount = window.innerWidth < 640 ? 25 : 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 2 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                particles.appendChild(particle);
+            }
+        }
+
+        // Form handling
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitButton = document.getElementById('submitButton');
+            const message = document.getElementById('formMessage');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Disable form and show loading
+            submitButton.disabled = true;
+            submitButton.innerHTML = 'Logging in...<span class="spinner"></span>';
+            message.style.display = 'none';
+
+            // Simulate API call
+            setTimeout(() => {
+                if (email === 'test@projectfuturo.it' && password === 'password123') {
+                    message.className = 'message success';
+                    message.textContent = 'Login successful! Redirecting...';
+                    message.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                } else {
+                    message.className = 'message error';
+                    message.textContent = 'Invalid email or password. Please try again.';
+                    message.style.display = 'block';
+
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Login';
+                }
+            }, 1500);
+        });
+
+        // Initialize
+        createParticles();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            const particles = document.querySelector('.particles');
+            const currentParticleCount = particles.children.length;
+            const targetParticleCount = window.innerWidth < 640 ? 25 : 50;
+
+            if (currentParticleCount !== targetParticleCount) {
+                particles.innerHTML = '';
+                createParticles();
+            }
+        });
+    </script>
+</body>
+</html>

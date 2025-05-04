@@ -29,6 +29,25 @@
             overflow-x: hidden;
         }
 
+        /* Responsive container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .container {
+                padding: 0 1.5rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                padding: 0 2rem;
+            }
+        }
+
         /* Animazione di background */
         .cyber-grid {
             position: fixed;
@@ -49,13 +68,9 @@
             to { transform: translate(30px, 30px); }
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
+        /* Header Header responsive */
         header {
+            padding: 1rem 0;
             position: fixed;
             width: 100%;
             top: 0;
@@ -65,107 +80,107 @@
             border-bottom: 1px solid rgba(0, 255, 255, 0.2);
         }
 
-        .nav {
+        .header-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 0;
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1.8rem;
+            gap: 0.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             text-transform: uppercase;
         }
 
-        .cyber-logo {
-            width: 50px;
-            height: 50px;
-            position: relative;
-            display: flex;
+        @media (min-width: 640px) {
+            .logo {
+                font-size: 1.5rem;
+                gap: 0.75rem;
+            }
+        }
+
+        .logo-image {
+            width: 30px;
+            height: 30px;
+            object-fit: contain; /* Mantiene le proporzioni */
+        }
+
+        @media (min-width: 640px) {
+            .logo-image {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        /* App button */
+        .app-button {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-        }
-
-        .cyber-logo::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border: 2px solid var(--primary);
-            border-radius: 50%;
-            animation: pulse-ring 2s infinite;
-        }
-
-        @keyframes pulse-ring {
-            0% { transform: scale(0.6); opacity: 1; }
-            100% { transform: scale(2); opacity: 0; }
-        }
-
-        .cyber-logo::after {
-            content: '⚡';
-            font-size: 24px;
-            position: absolute;
-            color: var(--primary);
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 30px;
-        }
-
-        .nav-link {
-            color: var(--text);
-            text-decoration: none;
-            padding: 5px 0;
-            position: relative;
-            transition: color 0.3s;
-        }
-
-        .nav-link:hover {
-            color: var(--primary);
-        }
-
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
+            padding: 0.5rem 1rem;
             background: var(--primary);
-            transition: width 0.3s;
+            color: #000;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
         }
 
-        .nav-link:hover::after {
-            width: 100%;
+        @media (min-width: 640px) {
+            .app-button {
+                padding: 0.75rem 1.5rem;
+                font-size: 1rem;
+            }
         }
 
+        .app-button:hover {
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        /* Hero section - responsive */
         .hero {
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             position: relative;
             overflow: hidden;
+            padding: 6rem 0 3rem;
         }
 
         .hero-content {
             max-width: 800px;
             z-index: 2;
-            padding-top: 100px;
+            width: 100%;
         }
 
         .glitch {
-            font-size: 5rem;
+            font-size: 2.5rem;
             font-weight: 900;
             text-transform: uppercase;
             position: relative;
             color: var(--text);
-            letter-spacing: 5px;
+            letter-spacing: 3px;
             z-index: 1;
+        }
+
+        @media (min-width: 640px) {
+            .glitch {
+                font-size: 4rem;
+                letter-spacing: 4px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .glitch {
+                font-size: 5rem;
+                letter-spacing: 5px;
+            }
         }
 
         .glitch::before,
@@ -192,30 +207,42 @@
 
         @keyframes glitch-1 {
             0% { transform: translate(0); }
-            20% { transform: translate(-5px, 5px); }
-            40% { transform: translate(-5px, -5px); }
-            60% { transform: translate(5px, 5px); }
-            80% { transform: translate(5px, -5px); }
+            20% { transform: translate(-3px, 3px); }
+            40% { transform: translate(-3px, -3px); }
+            60% { transform: translate(3px, 3px); }
+            80% { transform: translate(3px, -3px); }
             100% { transform: translate(0); }
         }
 
         @keyframes glitch-2 {
             0% { transform: translate(0); }
-            20% { transform: translate(5px, 5px); }
-            40% { transform: translate(5px, -5px); }
-            60% { transform: translate(-5px, 5px); }
-            80% { transform: translate(-5px, -5px); }
+            20% { transform: translate(3px, 3px); }
+            40% { transform: translate(3px, -3px); }
+            60% { transform: translate(-3px, 3px); }
+            80% { transform: translate(-3px, -3px); }
             100% { transform: translate(0); }
         }
 
         .type-writer {
-            font-size: 1.5rem;
+            font-size: 1rem;
             color: var(--text-dim);
             overflow: hidden;
             white-space: nowrap;
-            margin: 20px 0 40px;
+            margin: 1rem 0 2rem;
             border-right: 2px solid var(--primary);
             animation: typing 3.5s steps(40, end), blink 0.75s step-end infinite;
+        }
+
+        @media (min-width: 640px) {
+            .type-writer {
+                font-size: 1.25rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .type-writer {
+                font-size: 1.5rem;
+            }
         }
 
         @keyframes typing {
@@ -228,9 +255,21 @@
             50% { border-color: var(--primary); }
         }
 
+        .tagline {
+            margin-bottom: 2rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        @media (min-width: 640px) {
+            .tagline {
+                font-size: 1rem;
+            }
+        }
+
         .cyber-button {
             display: inline-block;
-            padding: 15px 40px;
+            padding: 1rem 2rem;
             background: transparent;
             border: 2px solid var(--primary);
             color: var(--primary);
@@ -240,6 +279,14 @@
             position: relative;
             overflow: hidden;
             transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        @media (min-width: 640px) {
+            .cyber-button {
+                padding: 1rem 2.5rem;
+                font-size: 1rem;
+            }
         }
 
         .cyber-button::before {
@@ -266,22 +313,65 @@
             z-index: 1;
         }
 
+        /* Features section - responsive */
         .features {
-            padding: 100px 0;
+            padding: 4rem 0;
             position: relative;
+        }
+
+        @media (min-width: 1024px) {
+            .features {
+                padding: 6rem 0;
+            }
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @media (min-width: 640px) {
+            .section-title {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .section-title {
+                font-size: 3rem;
+            }
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 40px;
-            margin-top: 60px;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        @media (min-width: 640px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 2.5rem;
+            }
         }
 
         .feature-card {
             background: var(--bg-card);
             border: 1px solid rgba(0, 255, 255, 0.2);
-            padding: 40px;
+            padding: 2rem;
             position: relative;
             overflow: hidden;
             backdrop-filter: blur(5px);
@@ -310,15 +400,21 @@
         }
 
         .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
             color: var(--primary);
             text-shadow: 0 0 10px var(--primary);
         }
 
+        @media (min-width: 640px) {
+            .feature-icon {
+                font-size: 3rem;
+            }
+        }
+
         .feature-title {
-            font-size: 1.8rem;
-            margin-bottom: 15px;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
             position: relative;
             z-index: 1;
         }
@@ -327,35 +423,44 @@
             color: var(--text-dim);
             position: relative;
             z-index: 1;
+            font-size: 0.9rem;
         }
 
+        @media (min-width: 640px) {
+            .feature-description {
+                font-size: 1rem;
+            }
+        }
+
+        /* Pricing section - responsive */
         .pricing {
-            padding: 100px 0;
+            padding: 4rem 0;
             background: rgba(0, 0, 0, 0.9);
         }
 
-        .section-title {
-            text-align: center;
-            font-size: 3rem;
-            margin-bottom: 60px;
-            text-transform: uppercase;
-            background: linear-gradient(45deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        @media (min-width: 1024px) {
+            .pricing {
+                padding: 6rem 0;
+            }
         }
 
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        @media (min-width: 768px) {
+            .pricing-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
 
         .pricing-card {
             background: var(--bg-card);
             border: 1px solid var(--primary);
-            padding: 40px;
+            padding: 2rem;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -366,9 +471,18 @@
             transform: translateY(-10px);
         }
 
-        .pricing-card.featured {
-            border-color: var(--secondary);
-            transform: scale(1.1);
+        @media (max-width: 767px) {
+            .pricing-card.featured {
+                border-color: var(--secondary);
+                order: -1;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .pricing-card.featured {
+                border-color: var(--secondary);
+                transform: scale(1.05);
+            }
         }
 
         .pricing-card.featured::after {
@@ -384,46 +498,78 @@
         }
 
         .price {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: bold;
-            margin: 20px 0;
+            margin: 1rem 0;
+        }
+
+        @media (min-width: 640px) {
+            .price {
+                font-size: 3rem;
+            }
         }
 
         .price-currency {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             vertical-align: super;
+        }
+
+        @media (min-width: 640px) {
+            .price-currency {
+                font-size: 1.5rem;
+            }
         }
 
         .pricing-features {
             list-style: none;
-            margin: 30px 0;
+            margin: 2rem 0;
         }
 
         .pricing-features li {
-            padding: 10px 0;
+            padding: 0.5rem 0;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
         }
 
+        @media (min-width: 640px) {
+            .pricing-features li {
+                font-size: 1rem;
+            }
+        }
+
+        /* Contact section - responsive */
         .contact {
-            padding: 100px 0;
+            padding: 4rem 0;
             background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1) 0%, transparent 70%);
+        }
+
+        @media (min-width: 1024px) {
+            .contact {
+                padding: 6rem 0;
+            }
         }
 
         .contact-form {
             max-width: 600px;
             margin: 0 auto;
             background: var(--bg-card);
-            padding: 40px;
+            padding: 2rem;
             border: 1px solid var(--primary);
         }
 
+        @media (min-width: 640px) {
+            .contact-form {
+                padding: 2.5rem;
+            }
+        }
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
         }
 
         .form-control {
             width: 100%;
-            padding: 15px;
+            padding: 1rem;
             background: transparent;
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: var(--text);
@@ -442,19 +588,28 @@
             resize: vertical;
         }
 
+        /* Dashboard stats - responsive */
         .dashboard-stats {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 1rem;
+            right: 1rem;
             background: var(--bg-card);
             border: 1px solid var(--primary);
-            padding: 15px;
+            padding: 0.75rem;
             backdrop-filter: blur(5px);
             z-index: 1000;
+            font-size: 0.8rem;
+        }
+
+        @media (min-width: 640px) {
+            .dashboard-stats {
+                padding: 1rem;
+                font-size: 0.9rem;
+            }
         }
 
         .stat-item {
-            margin-bottom: 5px;
+            margin-bottom: 0.25rem;
             color: var(--text-dim);
         }
 
@@ -463,31 +618,40 @@
             font-weight: bold;
         }
 
+        /* Footer - responsive */
         footer {
-            padding: 40px 0;
+            padding: 3rem 0;
             text-align: center;
             border-top: 1px solid rgba(0, 255, 255, 0.2);
-            margin-top: 100px;
+            margin-top: 6rem;
         }
 
         .footer-links {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
-            gap: 30px;
-            margin-top: 20px;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .footer-links {
+                gap: 2rem;
+            }
         }
 
         .footer-link {
             color: var(--text-dim);
             text-decoration: none;
             transition: color 0.3s;
+            font-size: 0.9rem;
         }
 
         .footer-link:hover {
             color: var(--primary);
         }
 
-        /* Animazioni di particelle */
+        /* Particles animation */
         .particles {
             position: fixed;
             top: 0;
@@ -515,25 +679,22 @@
 
     <header>
         <div class="container">
-            <nav class="nav">
+            <div class="header-content">
                 <div class="logo">
-                    <div class="cyber-logo"></div>
-                    CyberGuard Pro
+                    <span>Project Futuro</span>
+                    <img src="/static/logo.png" alt="Project Futuro Logo" class="logo-image">
                 </div>
-                <div class="nav-links">
-                    <a href="#home" class="nav-link">Home</a>
-                    <a href="#features" class="nav-link">Features</a>
-                    <a href="#pricing" class="nav-link">Prezzi</a>
-                    <a href="#contact" class="nav-link">Contatti</a>
-                </div>
-            </nav>
+                <a href="/app" class="app-button">
+                    Vai all'App →
+                </a>
+            </div>
         </div>
     </header>
 
-    <section id="home" class="hero">
+    <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1 class="glitch" data-text="CYBERGUARD">CYBERGUARD</h1>
+                <h1 class="glitch" data-text="PROJECT FUTURO">PROJECT FUTURO</h1>
                 <p class="type-writer">Protezione di rete di nuova generazione</p>
                 <p class="tagline">AI-powered • Real-time protection • 24/7 monitoring</p>
                 <a href="#features" class="cyber-button">
@@ -660,7 +821,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2025 CyberGuard Pro. Tutti i diritti riservati.</p>
+            <p>&copy; 2025 Project Futuro. Tutti i diritti riservati.</p>
             <div class="footer-links">
                 <a href="#" class="footer-link">Privacy Policy</a>
                 <a href="#" class="footer-link">Terms of Service</a>
@@ -680,7 +841,9 @@
         // Crea particelle animate
         function createParticles() {
             const particles = document.querySelector('.particles');
-            for (let i = 0; i < 50; i++) {
+            const particleCount = window.innerWidth < 640 ? 25 : 50;
+
+            for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
                 particle.style.left = Math.random() * 100 + '%';
@@ -731,9 +894,13 @@
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
             });
         });
 
@@ -743,6 +910,19 @@
             // Qui potresti inviare i dati al server
             alert('Messaggio inviato con successo!');
             this.reset();
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            // Ricarica le particelle se necessario
+            const particles = document.querySelector('.particles');
+            const currentParticleCount = particles.children.length;
+            const targetParticleCount = window.innerWidth < 640 ? 25 : 50;
+
+            if (currentParticleCount !== targetParticleCount) {
+                particles.innerHTML = '';
+                createParticles();
+            }
         });
     </script>
 </body>
