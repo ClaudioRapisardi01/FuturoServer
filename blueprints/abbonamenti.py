@@ -16,12 +16,22 @@ stripe.api_key = Config.STRIPE_SECRET_KEY
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # DEBUG
+        print(f"DEBUG: [login_required] Checking session...")
+        print(f"DEBUG: [login_required] user_id in session: {session.get('user_id')}")
+        print(f"DEBUG: [login_required] token in session: {session.get('token')}")
+        print(f"DEBUG: [login_required] session keys: {list(session.keys())}")
+        print(f"DEBUG: [login_required] session values: {dict(session)}")
+
         if 'user_id' not in session:
             flash('Please login to access this page.', 'error')
+            print(f"DEBUG: [login_required] No user_id in session, redirecting to login")
             return redirect(url_for('base.login'))
 
         # Se l'utente è loggato, controlla la sessione nel database
         if session.get('token'):
+            print(f"DEBUG: [login_required] Checking token: {session.get('token')[:10]}...")
+
             check_session_query = """
                 SELECT s.*, u.attivo 
                 FROM sessioni s 
@@ -34,7 +44,10 @@ def login_required(f):
             if not session_data:
                 session.clear()
                 flash('Your session has expired. Please login again.', 'error')
+                print(f"DEBUG: [login_required] Session invalid, redirecting to login")
                 return redirect(url_for('base.login'))
+            else:
+                print(f"DEBUG: [login_required] Session valid for user {session_data[0]['idUtente']}")
 
         return f(*args, **kwargs)
 

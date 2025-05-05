@@ -10,6 +10,7 @@ from blueprints.dispositivi import dispositivi_bp
 from blueprints.api import api_bp
 from config import get_config
 from logging.handlers import RotatingFileHandler
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Configura l'applicazione
 app = Flask(__name__)
@@ -34,8 +35,24 @@ if not app.debug and not app.testing:
     app.logger.setLevel(logging.INFO)
     app.logger.info('ServerFuturo startup')
 
+# Configure console handler in debug mode
+if app.debug:
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+    app.logger.addHandler(console_handler)
+    app.logger.setLevel(logging.DEBUG)
+
 
 # Template filters personalizzati
+@app.template_filter('format_datetime')
+def format_datetime(value, format='%d/%m/%Y %H:%M'):
+    """Formatta datetime"""
+    if value is None:
+        return ""
+    return value.strftime(format)
+
+
 @app.template_filter('format_datetime')
 def format_datetime(value, format='%d/%m/%Y %H:%M'):
     """Formatta datetime"""
@@ -119,15 +136,21 @@ def before_request():
     g.user_email = session.get('user_email')
     g.user_role = session.get('user_role')
 
-    # Log per debug in sviluppo
+    # Log per debug
     if app.debug:
         app.logger.debug(f'{request.method} {request.path} - User: {g.user_id}')
+        if request.form:
+            # Dont log passwords
+            form_data = dict(request.form)
+            if 'password' in form_data:
+                form_data['password'] = '[REDACTED]'
+            app.logger.debug(f'Form data: {form_data}')
 
 
 @app.after_request
 def after_request(response):
     """Eseguito dopo ogni richiesta"""
-    # Aggiungi headers di sicurezza in produzione
+    # Aggiungi headers di sicurezza
     if not app.debug:
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -179,16 +202,48 @@ def create_admin():
     email = input("Email admin: ")
     password = input("Password admin: ")
 
+    # Genera hash della password
+    password_hash = generate_password_hash(password)
+
     query = """
         INSERT INTO utenti (email, password, nome, cognome, ruolo, attivo)
         VALUES (%s, %s, 'Admin', 'User', 'admin', TRUE)
-        ON DUPLICATE KEY UPDATE ruolo = 'admin'
+        ON DUPLICATE KEY UPDATE password = %s, ruolo = 'admin'
     """
 
-    if DB.execute(query, (email, password)):
+    if DB.execute(query, (email, password_hash, password_hash)):
         print(f"Admin user created: {email}")
     else:
         print("Error creating admin user")
+
+
+@app.cli.command("hash-passwords")
+def hash_passwords():
+    """Converte password in chiaro esistenti in hash (per migrazione)"""
+    from db import DB
+
+    # Query per trovare tutti gli utenti con password in chiaro
+    query = "SELECT id, email, password FROM utenti WHERE password NOT LIKE 'scrypt%' AND password NOT LIKE 'pbkdf2%'"
+    users = DB.read_data(query)
+
+    if not users:
+        print("No plain text passwords found or no users.")
+        return
+
+    updated_count = 0
+    for user in users:
+        # Genera hash della password
+        password_hash = generate_password_hash(user['password'])
+
+        # Aggiorna l'utente
+        update_query = "UPDATE utenti SET password = %s WHERE id = %s"
+        if DB.execute(update_query, (password_hash, user['id'])):
+            updated_count += 1
+            print(f"Hashed password for user: {user['email']}")
+        else:
+            print(f"Failed to hash password for user: {user['email']}")
+
+    print(f"Password hashing complete. Updated {updated_count} users.")
 
 
 @app.cli.command("check-subscriptions")

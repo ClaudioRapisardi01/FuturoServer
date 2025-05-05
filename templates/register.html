@@ -523,26 +523,40 @@
             }
         }
 
-        function validatePassword(password) {
-            return {
-                length: password.length >= 8,
-                uppercase: /[A-Z]/.test(password),
-                lowercase: /[a-z]/.test(password),
-                number: /[0-9]/.test(password),
-                special: /[^A-Za-z0-9]/.test(password)
-            };
-        }
+        // Aggiorna la funzione updatePasswordRequirements in register.html
 
-        function updatePasswordRequirements(password) {
-            const requirements = validatePassword(password);
-            document.getElementById('length-req').className = requirements.length ? 'requirement valid' : 'requirement';
-            document.getElementById('uppercase-req').className = requirements.uppercase ? 'requirement valid' : 'requirement';
-            document.getElementById('lowercase-req').className = requirements.lowercase ? 'requirement valid' : 'requirement';
-            document.getElementById('number-req').className = requirements.number ? 'requirement valid' : 'requirement';
-            document.getElementById('special-req').className = requirements.special ? 'requirement valid' : 'requirement';
+function validatePassword(password) {
+    return {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*(),.?":{}|<>\-_+=\[\]\\;'`~]/.test(password)
+    };
+}
 
-            return Object.values(requirements).every(req => req);
-        }
+function updatePasswordRequirements(password) {
+    const requirements = validatePassword(password);
+
+    // Debug output to console
+    console.log('Password validation:', requirements);
+
+    document.getElementById('length-req').className = requirements.length ? 'requirement valid' : 'requirement';
+    document.getElementById('uppercase-req').className = requirements.uppercase ? 'requirement valid' : 'requirement';
+    document.getElementById('lowercase-req').className = requirements.lowercase ? 'requirement valid' : 'requirement';
+    document.getElementById('number-req').className = requirements.number ? 'requirement valid' : 'requirement';
+    document.getElementById('special-req').className = requirements.special ? 'requirement valid' : 'requirement';
+
+    // Mostra caratteri speciali trovati
+    const found = password.match(/[!@#$%^&*(),.?":{}|<>\-_+=\[\]\\;'`~]/g);
+    if (found) {
+        console.log('Special characters found:', found.join(', '));
+    } else {
+        console.log('No special characters found');
+    }
+
+    return Object.values(requirements).every(req => req);
+}
 
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirmPassword');

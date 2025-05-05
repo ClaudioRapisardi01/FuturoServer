@@ -1,5 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from functools import wraps
+
+from flask_bcrypt import check_password_hash, generate_password_hash
+
+from blueprints.base import validate_password
 from db import DB
 from datetime import datetime
 
@@ -262,6 +266,8 @@ def settings():
                            user_settings=user_settings or [])
 
 
+# Aggiorna la funzione change_password in user.py
+
 @user_bp.route('/change-password', methods=['POST'])
 @login_required
 def change_password():
@@ -269,17 +275,31 @@ def change_password():
     current_password = request.form.get('current_password')
     new_password = request.form.get('new_password')
 
-    # Verifica password attuale
+    # Recupera la password hash attuale dell'utente
     check_password_query = "SELECT password FROM utenti WHERE id = %s"
     user_data = DB.read_data(check_password_query, (user_id,))
 
-    if not user_data or user_data[0]['password'] != current_password:
+    if not user_data:
+        flash('User not found.', 'error')
+        return redirect(url_for('user.settings'))
+
+    # Verifica password attuale con hash
+    if not check_password_hash(user_data[0]['password'], current_password):
         flash('Current password is incorrect.', 'error')
         return redirect(url_for('user.settings'))
 
+    # Valida la nuova password
+    is_valid, error_msg = validate_password(new_password)
+    if not is_valid:
+        flash(error_msg, 'error')
+        return redirect(url_for('user.settings'))
+
+    # Genera hash della nuova password
+    new_password_hash = generate_password_hash(new_password)
+
     # Aggiorna password
     update_password_query = "UPDATE utenti SET password = %s WHERE id = %s"
-    if DB.execute(update_password_query, (new_password, user_id)):
+    if DB.execute(update_password_query, (new_password_hash, user_id)):
         # Log del cambio password
         log_query = """
             INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, dataEvento)

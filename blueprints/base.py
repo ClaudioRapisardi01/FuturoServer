@@ -21,16 +21,41 @@ def validate_email(email):
 
 def validate_password(password):
     """Valida forza password"""
+    # Debug della password (primi 3 caratteri per sicurezza)
+    print(f"DEBUG: Validating password (first 3 chars): {password[:3]}...")
+
     if len(password) < 8:
+        print(f"DEBUG: Password length: {len(password)}")
         return False, "Password must be at least 8 characters long"
-    if not re.search(r'[A-Z]', password):
+
+    # Uppercase check
+    has_upper = bool(re.search(r'[A-Z]', password))
+    print(f"DEBUG: Has uppercase: {has_upper}")
+    if not has_upper:
         return False, "Password must contain at least one uppercase letter"
-    if not re.search(r'[a-z]', password):
+
+    # Lowercase check
+    has_lower = bool(re.search(r'[a-z]', password))
+    print(f"DEBUG: Has lowercase: {has_lower}")
+    if not has_lower:
         return False, "Password must contain at least one lowercase letter"
-    if not re.search(r'[0-9]', password):
+
+    # Number check
+    has_number = bool(re.search(r'[0-9]', password))
+    print(f"DEBUG: Has number: {has_number}")
+    if not has_number:
         return False, "Password must contain at least one number"
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        return False, "Password must contain at least one special character"
+
+    # Special character check (expanded list)
+    special_chars = r'[!@#$%^&*(),.?":{}|<>-_+=\[\]\\;\'`~]'
+    has_special = bool(re.search(special_chars, password))
+    print(f"DEBUG: Has special character: {has_special}")
+
+    # Se la password non contiene caratteri speciali, mostra quali sono accettati
+    if not has_special:
+        return False, "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>-_+=[]\\;'`~)"
+
+    print(f"DEBUG: Password validation passed!")
     return True, ""
 
 
@@ -61,6 +86,9 @@ def login():
         password = request.form.get('password', '')
         remember = request.form.get('remember') is not None
 
+        # DEBUG
+        print(f"DEBUG: Login attempt for email: {email}")
+
         # Validazione di base
         if not email or not password:
             flash('Email and password are required.', 'error')
@@ -77,9 +105,11 @@ def login():
         if user_data and len(user_data) > 0:
             user = user_data[0]
 
-            # In produzione, dovresti verificare l'hash della password
-            # if check_password_hash(user['password'], password):
-            if user['password'] == password:  # Temporaneo per sviluppo
+            # DEBUG
+            print(f"DEBUG: User found: {user['id']}")
+
+            # Verifica password hash
+            if check_password_hash(user['password'], password):
                 # Crea sessione
                 session_token = generate_secure_token()
                 session_expiry = datetime.now() + timedelta(days=14 if remember else 1)
@@ -88,19 +118,25 @@ def login():
                     INSERT INTO sessioni (idUtente, token, ipAddress, userAgent, dataScadenza) 
                     VALUES (%s, %s, %s, %s, %s)
                 """
-                DB.execute(create_session_query, (
-                    user['id'],
-                    session_token,
-                    request.remote_addr,
-                    request.user_agent.string,
-                    session_expiry
-                ))
+                if not DB.execute(create_session_query, (
+                        user['id'],
+                        session_token,
+                        request.remote_addr,
+                        request.user_agent.string,
+                        session_expiry
+                )):
+                    flash('Error creating session', 'error')
+                    return render_template('login.html')
 
                 # Imposta variabili di sessione
                 session['user_id'] = user['id']
                 session['token'] = session_token
                 session['user_email'] = user['email']
                 session['user_role'] = user['ruolo']
+
+                # DEBUG
+                print(f"DEBUG: Session created for user: {user['id']}")
+                print(f"DEBUG: Token: {session_token}")
 
                 # Aggiorna ultimo accesso
                 update_access_query = "UPDATE utenti SET dataUltimoAccesso = NOW() WHERE id = %s"
@@ -123,9 +159,16 @@ def login():
                 """
                 subscription_check = DB.read_data(subscription_check_query, (user['id'],))
 
+                # DEBUG
+                print(f"DEBUG: Subscription check result: {subscription_check}")
+
                 if not subscription_check or subscription_check[0]['count'] == 0:
+                    # DEBUG
+                    print(f"DEBUG: No active subscription, redirecting to select_plan")
                     return redirect(url_for('abbonamenti.select_plan'))
                 else:
+                    # DEBUG
+                    print(f"DEBUG: User has active subscription, redirecting to dashboard")
                     return redirect(url_for('user.dashboard'))
             else:
                 flash('Invalid email or password. Please try again.', 'error')
@@ -145,6 +188,9 @@ def register():
         password = request.form.get('password', '')
         terms = request.form.get('terms') is not None
 
+        # DEBUG
+        print(f"DEBUG: Registration attempt for email: {email}")
+
         # Validazione completa
         if not all([nome, cognome, email, password, terms]):
             flash('All fields are required!', 'error')
@@ -152,6 +198,12 @@ def register():
 
         if not validate_email(email):
             flash('Invalid email format!', 'error')
+            return render_template('register.html')
+
+        # Validazione password
+        is_valid, error_msg = validate_password(password)
+        if not is_valid:
+            flash(error_msg, 'error')
             return render_template('register.html')
 
         # Verifica se email esiste già
@@ -162,8 +214,8 @@ def register():
             flash('Email already exists!', 'error')
             return render_template('register.html')
 
-        # In produzione, dovresti usare hash per le password
-        # password_hash = generate_password_hash(password)
+        # Genera hash della password
+        password_hash = generate_password_hash(password)
 
         # Inserisci nuovo utente
         insert_user_query = """
@@ -171,13 +223,16 @@ def register():
             VALUES (%s, %s, %s, %s, NOW(), TRUE, 'utente')
         """
 
-        if DB.execute(insert_user_query, (email, password, nome, cognome)):
+        if DB.execute(insert_user_query, (email, password_hash, nome, cognome)):
             # Prendi l'id del nuovo utente
             user_id_query = "SELECT id FROM utenti WHERE email = %s"
             user_result = DB.read_data(user_id_query, (email,))
 
             if user_result:
                 user_id = user_result[0]['id']
+
+                # DEBUG
+                print(f"DEBUG: New user created with ID: {user_id}")
 
                 # Log registrazione
                 log_query = """
@@ -203,19 +258,25 @@ def register():
                     INSERT INTO sessioni (idUtente, token, ipAddress, userAgent, dataScadenza) 
                     VALUES (%s, %s, %s, %s, %s)
                 """
-                DB.execute(create_session_query, (
-                    user_id,
-                    session_token,
-                    request.remote_addr,
-                    request.user_agent.string,
-                    session_expiry
-                ))
+                if not DB.execute(create_session_query, (
+                        user_id,
+                        session_token,
+                        request.remote_addr,
+                        request.user_agent.string,
+                        session_expiry
+                )):
+                    flash('Error creating session', 'error')
+                    return redirect(url_for('base.login'))
 
                 # Imposta variabili di sessione
                 session['user_id'] = user_id
                 session['token'] = session_token
                 session['user_email'] = email
                 session['user_role'] = 'utente'
+
+                # DEBUG
+                print(f"DEBUG: Session created for new user: {user_id}")
+                print(f"DEBUG: Token: {session_token}")
 
                 return redirect(url_for('abbonamenti.select_plan'))
             else:
@@ -295,10 +356,13 @@ def reset_password(token):
             flash(error_msg, 'error')
             return render_template('reset_password.html', token=token)
 
+        # Genera hash della nuova password
+        password_hash = generate_password_hash(new_password)
+
         # Aggiorna la password (trova l'utente dal token)
         # Questo è un esempio semplificato
         update_query = "UPDATE utenti SET password = %s WHERE email = 'test@example.com'"
-        if DB.execute(update_query, (new_password,)):
+        if DB.execute(update_query, (password_hash,)):
             flash('Password updated successfully! Please login.', 'success')
             return redirect(url_for('base.login'))
         else:
