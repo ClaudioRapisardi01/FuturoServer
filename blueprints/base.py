@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import DB
 import secrets
+from datetime import datetime, timedelta
 
 base_bp = Blueprint('base', __name__, url_prefix='/')
 
@@ -19,24 +20,27 @@ def login():
         remember = request.form.get('remember') is not None
 
         # Query per trovare l'utente
-        user_query = "SELECT * FROM utenti WHERE email = %s AND stato_account = 'attivo'"
+        user_query = "SELECT * FROM utenti WHERE email = %s AND attivo = TRUE"
         user_data = DB.read_data(user_query, (email,))
 
         if user_data and len(user_data) > 0:
             user = user_data[0]
             # Verifica password
-            if check_password_hash(user['password_hash'], password):
+            if user['password'] == password:  # In produzione dovresti usare hash
                 # Crea sessione
                 session_token = secrets.token_hex(32)
+                session_expiry = datetime.now() + timedelta(days=14 if remember else 1)
+
                 create_session_query = """
-                    INSERT INTO sessioni (utente_id, token, ip_address, user_agent) 
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO sessioni (idUtente, token, ipAddress, userAgent, dataScadenza) 
+                    VALUES (%s, %s, %s, %s, %s)
                 """
                 DB.execute(create_session_query, (
                     user['id'],
                     session_token,
                     request.remote_addr,
-                    request.user_agent.string
+                    request.user_agent.string,
+                    session_expiry
                 ))
 
                 # Imposta variabili di sessione
@@ -46,15 +50,15 @@ def login():
                 session['user_role'] = user['ruolo']
 
                 # Aggiorna ultimo accesso
-                update_access_query = "UPDATE utenti SET ultimo_accesso = NOW() WHERE id = %s"
-                DB.execute(update_access_query, (user['id'],))
+                update_access_query = "UPDATE utenti SET dataUltimoAccesso = %s WHERE id = %s"
+                DB.execute(update_access_query, (datetime.now(), user['id']))
 
                 # Log dell'accesso
                 log_query = """
-                    INSERT INTO logs (utente_id, tipo_evento, descrizione, ip_address) 
-                    VALUES (%s, 'login', 'User logged in', %s)
+                    INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, userAgent, dataEvento) 
+                    VALUES (%s, 'login', 'User logged in', %s, %s, %s)
                 """
-                DB.execute(log_query, (user['id'], request.remote_addr))
+                DB.execute(log_query, (user['id'], request.remote_addr, request.user_agent.string, datetime.now()))
 
                 flash('Login successful! Welcome back.', 'success')
                 return redirect(url_for('user.dashboard'))
@@ -87,19 +91,13 @@ def register():
             flash('Email already exists!', 'error')
             return render_template('register.html')
 
-        # Crea hash password
-        password_hash = generate_password_hash(password)
-
-        # Genera codice verifica
-        verification_code = secrets.token_hex(32)
-
         # Inserisci nuovo utente
         insert_user_query = """
-            INSERT INTO utenti (email, password_hash, nome, cognome, codice_verifica, scadenza_codice) 
-            VALUES (%s, %s, %s, %s, %s, DATE_ADD(NOW(), INTERVAL 24 HOUR))
+            INSERT INTO utenti (email, password, nome, cognome, dataIscrizione, attivo) 
+            VALUES (%s, %s, %s, %s, %s, TRUE)
         """
 
-        if DB.execute(insert_user_query, (email, password_hash, nome, cognome, verification_code)):
+        if DB.execute(insert_user_query, (email, password, nome, cognome, datetime.now())):
             # Prendi l'id del nuovo utente
             user_id_query = "SELECT id FROM utenti WHERE email = %s"
             user_result = DB.read_data(user_id_query, (email,))
@@ -109,12 +107,19 @@ def register():
 
                 # Log registrazione
                 log_query = """
-                    INSERT INTO logs (utente_id, tipo_evento, descrizione, ip_address) 
-                    VALUES (%s, 'registrazione', 'New user registered', %s)
+                    INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, userAgent, dataEvento) 
+                    VALUES (%s, 'registrazione', 'New user registered', %s, %s, %s)
                 """
-                DB.execute(log_query, (user_id, request.remote_addr))
+                DB.execute(log_query, (user_id, request.remote_addr, request.user_agent.string, datetime.now()))
 
-                flash('Registration successful! Please check your email to verify your account.', 'success')
+                # Crea notifica di benvenuto
+                welcome_notification_query = """
+                    INSERT INTO notifiche (idUtente, titolo, messaggio, tipo) 
+                    VALUES (%s, 'Benvenuto!', 'Grazie per esserti registrato su ServerFuturo', 'info')
+                """
+                DB.execute(welcome_notification_query, (user_id,))
+
+                flash('Registration successful! Please login to continue.', 'success')
                 return redirect(url_for('base.login'))
             else:
                 flash('Error occurred during registration.', 'error')
@@ -133,10 +138,10 @@ def logout():
 
         # Log logout
         log_query = """
-            INSERT INTO logs (utente_id, tipo_evento, descrizione, ip_address) 
-            VALUES (%s, 'logout', 'User logged out', %s)
+            INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, userAgent, dataEvento) 
+            VALUES (%s, 'logout', 'User logged out', %s, %s, %s)
         """
-        DB.execute(log_query, (session['user_id'], request.remote_addr))
+        DB.execute(log_query, (session['user_id'], request.remote_addr, request.user_agent.string, datetime.now()))
 
     session.clear()
     flash('You have been logged out successfully.', 'success')
@@ -149,8 +154,8 @@ def stats():
     # Conta dispositivi attivi
     active_devices_query = """
         SELECT COUNT(*) as count FROM dispositivi 
-        WHERE stato = 'attivo' AND 
-        ultimo_utilizzo > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        WHERE attivo = TRUE AND 
+        ultimoAccesso > DATE_SUB(NOW(), INTERVAL 1 HOUR)
     """
     active_devices_result = DB.read_data(active_devices_query)
     active_devices = active_devices_result[0]['count'] if active_devices_result else 0

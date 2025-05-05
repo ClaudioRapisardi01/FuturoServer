@@ -381,7 +381,7 @@
                 <h1 class="brand-name">Project Futuro</h1>
                 <img src="/static/logo.png" alt="Project Futuro Logo" class="logo-image">
             </div>
-            <p class="brand-tagline">Accedi alla tua dashboard</p>
+
         </div>
 
         <form id="loginForm" class="login-form" method="POST" action="{{ url_for('base.login') }}">
@@ -395,17 +395,17 @@
 
             <div class="form-group">
                 <label class="form-label" for="email">Email</label>
-                <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email" required>
+                <input type="email" id="email" name="email" class="form-control" placeholder="La tua email" required>
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="password">Password</label>
-                <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                <input type="password" id="password" name="password" class="form-control" placeholder="La tua password" required>
             </div>
 
             <div class="checkbox-group">
                 <input type="checkbox" id="remember" name="remember" class="checkbox">
-                <label for="remember" class="checkbox-label">Remember me</label>
+                <label for="remember" class="checkbox-label">Ricordami</label>
             </div>
 
             <button type="submit" class="submit-button" id="submitButton">
@@ -413,10 +413,10 @@
             </button>
 
             <div class="form-links">
-                <a href="/forgot-password" class="form-link">Forgot password?</a>
+                <a href="/forgot-password" class="form-link">Password dimenticata?</a>
                 <p>
-                    Don't have an account?
-                    <a href="{{ url_for('base.register') }}" class="form-link">Register now</a>
+                    Non hai un account?
+                    <a href="{{ url_for('base.register') }}" class="form-link">Registrati ora</a>
                 </p>
             </div>
         </form>
