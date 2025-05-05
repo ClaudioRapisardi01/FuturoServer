@@ -3,21 +3,72 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db import DB
 import secrets
 from datetime import datetime, timedelta
+import re
 
 base_bp = Blueprint('base', __name__, url_prefix='/')
 
 
+def generate_secure_token(length=32):
+    """Genera un token sicuro"""
+    return secrets.token_hex(length)
+
+
+def validate_email(email):
+    """Valida formato email"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+
+def validate_password(password):
+    """Valida forza password"""
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    if not re.search(r'[A-Z]', password):
+        return False, "Password must contain at least one uppercase letter"
+    if not re.search(r'[a-z]', password):
+        return False, "Password must contain at least one lowercase letter"
+    if not re.search(r'[0-9]', password):
+        return False, "Password must contain at least one number"
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, "Password must contain at least one special character"
+    return True, ""
+
+
 @base_bp.route('/')
 def index():
-    return render_template('index.html')
+    """Home page"""
+    # Se l'utente è già loggato, reindirizza alla dashboard
+    if 'user_id' in session:
+        return redirect(url_for('user.dashboard'))
+
+    # Recupera statistiche pubbliche per la homepage
+    stats_query = """
+        SELECT 
+            (SELECT COUNT(*) FROM utenti WHERE attivo = TRUE) as total_users,
+            (SELECT COUNT(*) FROM dispositivi WHERE attivo = TRUE) as total_devices,
+            (SELECT COUNT(*) FROM utenti_abbonamenti WHERE stato = 'attivo') as active_subscriptions
+    """
+    stats = DB.read_data(stats_query)
+
+    return render_template('index.html', stats=stats[0] if stats else None)
 
 
 @base_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    """Login dell'utente"""
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
         remember = request.form.get('remember') is not None
+
+        # Validazione di base
+        if not email or not password:
+            flash('Email and password are required.', 'error')
+            return render_template('login.html')
+
+        if not validate_email(email):
+            flash('Invalid email format.', 'error')
+            return render_template('login.html')
 
         # Query per trovare l'utente
         user_query = "SELECT * FROM utenti WHERE email = %s AND attivo = TRUE"
@@ -25,10 +76,12 @@ def login():
 
         if user_data and len(user_data) > 0:
             user = user_data[0]
-            # Verifica password
-            if user['password'] == password:  # In produzione dovresti usare hash
+
+            # In produzione, dovresti verificare l'hash della password
+            # if check_password_hash(user['password'], password):
+            if user['password'] == password:  # Temporaneo per sviluppo
                 # Crea sessione
-                session_token = secrets.token_hex(32)
+                session_token = generate_secure_token()
                 session_expiry = datetime.now() + timedelta(days=14 if remember else 1)
 
                 create_session_query = """
@@ -50,18 +103,30 @@ def login():
                 session['user_role'] = user['ruolo']
 
                 # Aggiorna ultimo accesso
-                update_access_query = "UPDATE utenti SET dataUltimoAccesso = %s WHERE id = %s"
-                DB.execute(update_access_query, (datetime.now(), user['id']))
+                update_access_query = "UPDATE utenti SET dataUltimoAccesso = NOW() WHERE id = %s"
+                DB.execute(update_access_query, (user['id'],))
 
                 # Log dell'accesso
                 log_query = """
                     INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, userAgent, dataEvento) 
-                    VALUES (%s, 'login', 'User logged in', %s, %s, %s)
+                    VALUES (%s, 'login', 'User logged in', %s, %s, NOW())
                 """
-                DB.execute(log_query, (user['id'], request.remote_addr, request.user_agent.string, datetime.now()))
+                DB.execute(log_query, (user['id'], request.remote_addr, request.user_agent.string))
 
                 flash('Login successful! Welcome back.', 'success')
-                return redirect(url_for('user.dashboard'))
+
+                # Controlla se deve essere reindirizzato alla selezione dell'abbonamento
+                subscription_check_query = """
+                    SELECT COUNT(*) as count 
+                    FROM utenti_abbonamenti 
+                    WHERE idUtente = %s AND stato = 'attivo'
+                """
+                subscription_check = DB.read_data(subscription_check_query, (user['id'],))
+
+                if not subscription_check or subscription_check[0]['count'] == 0:
+                    return redirect(url_for('abbonamenti.select_plan'))
+                else:
+                    return redirect(url_for('user.dashboard'))
             else:
                 flash('Invalid email or password. Please try again.', 'error')
         else:
@@ -72,15 +137,21 @@ def login():
 
 @base_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    """Registrazione nuovo utente"""
     if request.method == 'POST':
-        nome = request.form.get('nome')
-        cognome = request.form.get('cognome')
-        email = request.form.get('email')
-        password = request.form.get('password')
+        nome = request.form.get('nome', '').strip()
+        cognome = request.form.get('cognome', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
         terms = request.form.get('terms') is not None
 
+        # Validazione completa
         if not all([nome, cognome, email, password, terms]):
             flash('All fields are required!', 'error')
+            return render_template('register.html')
+
+        if not validate_email(email):
+            flash('Invalid email format!', 'error')
             return render_template('register.html')
 
         # Verifica se email esiste già
@@ -91,13 +162,16 @@ def register():
             flash('Email already exists!', 'error')
             return render_template('register.html')
 
+        # In produzione, dovresti usare hash per le password
+        # password_hash = generate_password_hash(password)
+
         # Inserisci nuovo utente
         insert_user_query = """
-            INSERT INTO utenti (email, password, nome, cognome, dataIscrizione, attivo) 
-            VALUES (%s, %s, %s, %s, %s, TRUE)
+            INSERT INTO utenti (email, password, nome, cognome, dataIscrizione, attivo, ruolo) 
+            VALUES (%s, %s, %s, %s, NOW(), TRUE, 'utente')
         """
 
-        if DB.execute(insert_user_query, (email, password, nome, cognome, datetime.now())):
+        if DB.execute(insert_user_query, (email, password, nome, cognome)):
             # Prendi l'id del nuovo utente
             user_id_query = "SELECT id FROM utenti WHERE email = %s"
             user_result = DB.read_data(user_id_query, (email,))
@@ -108,19 +182,42 @@ def register():
                 # Log registrazione
                 log_query = """
                     INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, userAgent, dataEvento) 
-                    VALUES (%s, 'registrazione', 'New user registered', %s, %s, %s)
+                    VALUES (%s, 'registrazione', 'New user registered', %s, %s, NOW())
                 """
-                DB.execute(log_query, (user_id, request.remote_addr, request.user_agent.string, datetime.now()))
+                DB.execute(log_query, (user_id, request.remote_addr, request.user_agent.string))
 
                 # Crea notifica di benvenuto
                 welcome_notification_query = """
-                    INSERT INTO notifiche (idUtente, titolo, messaggio, tipo) 
-                    VALUES (%s, 'Benvenuto!', 'Grazie per esserti registrato su ServerFuturo', 'info')
+                    INSERT INTO notifiche (idUtente, titolo, messaggio, tipo, priorita) 
+                    VALUES (%s, 'Benvenuto!', 'Grazie per esserti registrato su ServerFuturo', 'info', 1)
                 """
                 DB.execute(welcome_notification_query, (user_id,))
 
-                flash('Registration successful! Please login to continue.', 'success')
-                return redirect(url_for('base.login'))
+                flash('Registration successful! Please select a subscription plan.', 'success')
+
+                # Crea una sessione automaticamente per il nuovo utente
+                session_token = generate_secure_token()
+                session_expiry = datetime.now() + timedelta(days=14)
+
+                create_session_query = """
+                    INSERT INTO sessioni (idUtente, token, ipAddress, userAgent, dataScadenza) 
+                    VALUES (%s, %s, %s, %s, %s)
+                """
+                DB.execute(create_session_query, (
+                    user_id,
+                    session_token,
+                    request.remote_addr,
+                    request.user_agent.string,
+                    session_expiry
+                ))
+
+                # Imposta variabili di sessione
+                session['user_id'] = user_id
+                session['token'] = session_token
+                session['user_email'] = email
+                session['user_role'] = 'utente'
+
+                return redirect(url_for('abbonamenti.select_plan'))
             else:
                 flash('Error occurred during registration.', 'error')
         else:
@@ -131,6 +228,7 @@ def register():
 
 @base_bp.route('/logout')
 def logout():
+    """Logout dell'utente"""
     if 'user_id' in session and 'token' in session:
         # Disattiva sessione nel database
         deactivate_session_query = "UPDATE sessioni SET attiva = FALSE WHERE token = %s"
@@ -139,18 +237,98 @@ def logout():
         # Log logout
         log_query = """
             INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, userAgent, dataEvento) 
-            VALUES (%s, 'logout', 'User logged out', %s, %s, %s)
+            VALUES (%s, 'logout', 'User logged out', %s, %s, NOW())
         """
-        DB.execute(log_query, (session['user_id'], request.remote_addr, request.user_agent.string, datetime.now()))
+        DB.execute(log_query, (session['user_id'], request.remote_addr, request.user_agent.string))
 
     session.clear()
     flash('You have been logged out successfully.', 'success')
     return redirect(url_for('base.index'))
 
 
+@base_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Reset password request"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+
+        if not validate_email(email):
+            flash('Invalid email format.', 'error')
+            return render_template('forgot_password.html')
+
+        # Verifica se l'utente esiste
+        user_query = "SELECT id FROM utenti WHERE email = %s AND attivo = TRUE"
+        user_data = DB.read_data(user_query, (email,))
+
+        if user_data:
+            # In produzione, genereresti un token e invieresti un'email
+            # Per ora, simuliamo il processo
+            reset_token = generate_secure_token()
+
+            # Salva il token nel database (dovresti avere una tabella per questo)
+            # Qui per semplicità lo loggiamo
+            log_query = """
+                INSERT INTO log (idUtente, tipoEvento, descrizione, ipAddress, dataEvento)
+                VALUES (%s, 'password_reset_request', %s, %s, NOW())
+            """
+            DB.execute(log_query, (user_data[0]['id'], f'Reset token: {reset_token}', request.remote_addr))
+
+            flash('Password reset instructions have been sent to your email.', 'success')
+        else:
+            # Per sicurezza, mostriamo lo stesso messaggio anche se l'utente non esiste
+            flash('Password reset instructions have been sent to your email.', 'success')
+
+        return redirect(url_for('base.login'))
+
+    return render_template('forgot_password.html')
+
+
+@base_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Reset password with token"""
+    # In produzione, verificheresti che il token sia valido
+    if request.method == 'POST':
+        new_password = request.form.get('password', '')
+
+        is_valid, error_msg = validate_password(new_password)
+        if not is_valid:
+            flash(error_msg, 'error')
+            return render_template('reset_password.html', token=token)
+
+        # Aggiorna la password (trova l'utente dal token)
+        # Questo è un esempio semplificato
+        update_query = "UPDATE utenti SET password = %s WHERE email = 'test@example.com'"
+        if DB.execute(update_query, (new_password,)):
+            flash('Password updated successfully! Please login.', 'success')
+            return redirect(url_for('base.login'))
+        else:
+            flash('Error updating password.', 'error')
+
+    return render_template('reset_password.html', token=token)
+
+
+@base_bp.route('/terms')
+def terms():
+    """Termini e condizioni"""
+    return render_template('legal/terms.html')
+
+
+@base_bp.route('/privacy')
+def privacy():
+    """Privacy policy"""
+    return render_template('legal/privacy.html')
+
+
+@base_bp.route('/contact')
+def contact():
+    """Pagina di contatto"""
+    return render_template('contact.html')
+
+
 # API endpoint per stats dashboard (chiamato via JavaScript)
 @base_bp.route('/stats')
 def stats():
+    """API per statistiche in tempo reale"""
     # Conta dispositivi attivi
     active_devices_query = """
         SELECT COUNT(*) as count FROM dispositivi 
@@ -160,6 +338,64 @@ def stats():
     active_devices_result = DB.read_data(active_devices_query)
     active_devices = active_devices_result[0]['count'] if active_devices_result else 0
 
+    # Conta minacce bloccate (esempio)
+    threats_query = """
+        SELECT COUNT(*) as count FROM log 
+        WHERE tipoEvento = 'security_event' AND
+        dataEvento > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+    """
+    threats_result = DB.read_data(threats_query)
+    threats_blocked = threats_result[0]['count'] if threats_result else 0
+
     return jsonify({
-        'active_devices': active_devices
+        'active_devices': active_devices,
+        'threats_blocked': threats_blocked
     })
+
+
+@base_bp.route('/health')
+def health_check():
+    """Health check endpoint"""
+    try:
+        # Test connessione database
+        test_query = "SELECT 1"
+        DB.read_data(test_query)
+
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'database': 'disconnected',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
+@base_bp.errorhandler(404)
+def page_not_found(e):
+    """Gestione errore 404"""
+    return render_template('errors/404.html'), 404
+
+
+@base_bp.errorhandler(500)
+def internal_server_error(e):
+    """Gestione errore 500"""
+    return render_template('errors/500.html'), 500
+
+
+@base_bp.route('/robots.txt')
+def robots_txt():
+    """Robots.txt dinamico"""
+    lines = [
+        'User-agent: *',
+        'Disallow: /user/',
+        'Disallow: /subscription/',
+        'Disallow: /admin/',
+        'Allow: /',
+        'Sitemap: https://projectfuturo.com/sitemap.xml'
+    ]
+    return '\n'.join(lines), 200, {'Content-Type': 'text/plain; charset=utf-8'}

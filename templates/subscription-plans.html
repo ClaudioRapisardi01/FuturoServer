@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Futuro - Scegli il Tuo Piano</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00ffff;
+            --secondary: #ff00ff;
+            --bg-dark: #0a0a0a;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --text: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --error: #ff4444;
+            --success: #44ff44;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Background */
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 98%, var(--primary) 1px) 0 0,
+                        linear-gradient(90deg, transparent 98%, var(--primary) 1px) 0 0;
+            background-size: 30px 30px;
+            opacity: 0.1;
+            z-index: -1;
+            animation: grid-move 20s linear infinite;
+        }
+
+        @keyframes grid-move {
+            from { transform: translate(0, 0); }
+            to { transform: translate(30px, 30px); }
+        }
+
+        /* Header */
+        .header {
+            padding: 2rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .brand-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .logo-image {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Pricing Grid */
+        .pricing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        @media (min-width: 768px) {
+            .pricing-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .pricing-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 255, 255, 0.1);
+        }
+
+        .pricing-card.featured {
+            border-color: var(--secondary);
+            transform: scale(1.05);
+        }
+
+        .pricing-card.featured::before {
+            content: 'POPOLARE';
+            position: absolute;
+            top: 20px;
+            right: -30px;
+            background: var(--secondary);
+            color: #000;
+            padding: 5px 40px;
+            transform: rotate(45deg);
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .plan-name {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .price-currency {
+            font-size: 1.5rem;
+            vertical-align: super;
+        }
+
+        .price-period {
+            font-size: 1rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .features-list {
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .feature-item {
+            padding: 0.75rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .feature-item:last-child {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-icon {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .select-button {
+            width: 100%;
+            padding: 1rem;
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .select-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            transition: left 0.3s;
+            z-index: 0;
+        }
+
+        .select-button:hover::before {
+            left: 0;
+        }
+
+        .select-button:hover {
+            color: #000;
+        }
+
+        .select-button span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .pricing-card.featured .select-button {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .pricing-card.featured .select-button::before {
+            background: var(--secondary);
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .loading-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid transparent;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid;
+            text-align: center;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: messageAppear 0.3s ease;
+        }
+
+        .message.error {
+            border-color: var(--error);
+            color: var(--error);
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .message.success {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(68, 255, 68, 0.1);
+        }
+
+        @keyframes messageAppear {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-link {
+            color: var(--primary);
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="cyber-grid"></div>
+
+    <div class="header">
+        <div class="logo-container">
+            <h1 class="brand-name">Project Futuro</h1>
+            <img src="/static/logo.png" alt="Project Futuro Logo" class="logo-image">
+        </div>
+        <h2 class="page-title">Scegli il Tuo Piano</h2>
+        <p class="page-subtitle">Seleziona il piano perfetto per le tue esigenze</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="pricing-container">
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3 class="plan-name">Basic</h3>
+                <div class="price">€9.99<span class="price-currency"></span></div>
+                <div class="price-period">al mese</div>
+                <ul class="features-list">
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Fino a 2 dispositivi</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Monitoraggio basico</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Report settimanali</span>
+                    </li>
+                </ul>
+                <button class="select-button" onclick="selectPlan('basic', 1)">
+                    <span>Seleziona Piano</span>
+                </button>
+            </div>
+
+            <div class="pricing-card featured">
+                <h3 class="plan-name">Pro</h3>
+                <div class="price">€29.99<span class="price-currency"></span></div>
+                <div class="price-period">al mese</div>
+                <ul class="features-list">
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Fino a 10 dispositivi</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Monitoraggio avanzato</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>AI alerts</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Supporto prioritario</span>
+                    </li>
+                </ul>
+                <button class="select-button" onclick="selectPlan('pro', 2)">
+                    <span>Seleziona Piano</span>
+                </button>
+            </div>
+
+            <div class="pricing-card">
+                <h3 class="plan-name">Enterprise</h3>
+                <div class="price">€99.99<span class="price-currency"></span></div>
+                <div class="price-period">al mese</div>
+                <ul class="features-list">
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Fino a 50 dispositivi</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Monitoraggio real-time</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Custom reports</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check feature-icon"></i>
+                        <span>Supporto 24/7</span>
+                    </li>
+                </ul>
+                <button class="select-button" onclick="selectPlan('enterprise', 3)">
+                    <span>Seleziona Piano</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2025 Project Futuro. Tutti i diritti riservati.</p>
+        <div>
+            <a href="/terms" class="footer-link">Termini e Condizioni</a>
+            <a href="/privacy" class="footer-link">Privacy Policy</a>
+            <a href="/contact" class="footer-link">Supporto</a>
+        </div>
+    </div>
+
+    <div class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        // Stripe public key - da impostare nelle variabili d'ambiente
+        const stripe = Stripe('{{ stripe_public_key }}');
+
+        function selectPlan(planName, planId) {
+            showLoading();
+
+            fetch('/subscription/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    plan: planName,
+                    plan_id: planId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    hideLoading();
+                    alert(data.error);
+                    return;
+                }
+                // Redirect to Stripe Checkout
+                return stripe.redirectToCheckout({
+                    sessionId: data.sessionId
+                });
+            })
+            .then(result => {
+                hideLoading();
+                if (result.error) {
+                    alert(result.error.message);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('Errore durante la selezione del piano');
+            });
+        }
+
+        function showLoading() {
+            document.querySelector('.loading-overlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.querySelector('.loading-overlay').classList.remove('active');
+        }
+
+        // Remove flash messages after 5 seconds
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(message => {
+                message.style.opacity = '0';
+                setTimeout(() => {
+                    message.remove();
+                }, 300);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
