@@ -14,7 +14,6 @@ import threading
 import os
 import datetime
 import ipaddress
-import netifaces
 import psutil
 from scapy.all import IP, sniff
 import subprocess
@@ -34,38 +33,63 @@ active_connections = {}  # Dizionario per tenere traccia delle connessioni attiv
 
 
 def get_network_info():
-    """Ottiene informazioni sulla rete locale."""
+    """Ottiene informazioni sulla rete locale con un approccio semplificato."""
     try:
-        # Determina interfaccia predefinita
-        gateways = netifaces.gateways()
-        default_gateway = gateways['default'][netifaces.AF_INET][0]
-        default_interface = gateways['default'][netifaces.AF_INET][1]
+        network_info = {}
 
-        # Ottiene IP privato e maschera di rete
-        addresses = netifaces.ifaddresses(default_interface)
-        ip_info = addresses[netifaces.AF_INET][0]
+        # Determina l'IP privato usando socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))  # Connessione a Google DNS per determinare l'interfaccia
+        network_info['ip_private'] = s.getsockname()[0]
+        s.close()
 
-        private_ip = ip_info['addr']
-        netmask = ip_info['netmask']
+        # Semplificazione: assume che la rete sia una /24 (classe C)
+        # Prende i primi 3 ottetti dell'IP e aggiunge .0/24
+        ip_parts = network_info['ip_private'].split('.')
+        network_info['network_cidr'] = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.0/24"
 
-        # Calcola il CIDR della rete
-        ip_interface = ipaddress.IPv4Interface(f"{private_ip}/{netmask}")
-        network_cidr = str(ip_interface.network)
+        # Imposta netmask standard per rete /24
+        network_info['netmask'] = "255.255.255.0"
 
-        # Ottiene MAC address
-        mac_address = netifaces.ifaddresses(default_interface)[netifaces.AF_LINK][0]['addr']
+        # Per il gateway, usa l'indirizzo .1 come comune default
+        network_info['gateway'] = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.1"
 
-        return {
-            'interface': default_interface,
-            'gateway': default_gateway,
-            'ip_private': private_ip,
-            'netmask': netmask,
-            'network_cidr': network_cidr,
-            'mac_address': mac_address
-        }
+        # Per il MAC, ottiene informazioni dall'interfaccia di rete attiva
+        try:
+            if os.name == 'nt':  # Windows
+                output = subprocess.check_output("ipconfig /all", shell=True, text=True)
+                for line in output.split('\n'):
+                    if "Physical Address" in line and ":" in line:
+                        mac = line.split(":")[-1].strip()
+                        if mac and mac != "":
+                            network_info['mac_address'] = mac
+                            break
+            else:  # Linux/Unix
+                output = subprocess.check_output("ifconfig || ip link", shell=True, text=True)
+                for line in output.split('\n'):
+                    if ("ether" in line or "HWaddr" in line) and network_info['ip_private'] in output:
+                        parts = line.split()
+                        for i, part in enumerate(parts):
+                            if part.lower() in ["ether", "hwaddr"] and i + 1 < len(parts):
+                                network_info['mac_address'] = parts[i + 1]
+                                break
+        except:
+            # Fallback se non riesce a ottenere il MAC
+            network_info['mac_address'] = "00:00:00:00:00:00"
+
+        print(f"Informazioni di rete determinate: Rete {network_info['network_cidr']}, IP {network_info['ip_private']}")
+        return network_info
     except Exception as e:
         print(f"Errore nel determinare le informazioni di rete: {e}")
-        return None
+        # Fallback con valori predefiniti
+        return {
+            'interface': "default",
+            'gateway': "192.168.1.1",
+            'ip_private': "192.168.1.100",
+            'netmask': "255.255.255.0",
+            'network_cidr': "192.168.1.0/24",
+            'mac_address': "00:00:00:00:00:00"
+        }
 
 
 def discover_box():
@@ -90,37 +114,43 @@ def discover_box():
     # Se non trova l'IP salvato, scansiona la rete
     network_info = get_network_info()
     if not network_info:
-        return None
+        print("Impossibile ottenere informazioni di rete. Utilizzo rete predefinita 192.168.1.0/24")
+        network_cidr = "192.168.1.0/24"
+        our_ip = "192.168.1.100"  # IP di fallback
+    else:
+        network_cidr = network_info['network_cidr']
+        our_ip = network_info['ip_private']
 
-    # Ottiene il range di rete
-    network = ipaddress.IPv4Network(network_info['network_cidr'], strict=False)
-    our_ip = network_info['ip_private']
-
-    print(f"Ricerca del BOX nella rete {network}...")
+    print(f"Ricerca del BOX nella rete {network_cidr}...")
 
     # Scansiona tutti gli IP nella rete (escluso il broadcast e il proprio IP)
-    for ip in network.hosts():
-        ip_str = str(ip)
+    try:
+        network = ipaddress.IPv4Network(network_cidr, strict=False)
+        for ip in network.hosts():
+            ip_str = str(ip)
 
-        # Salta il proprio IP
-        if ip_str == our_ip:
-            continue
+            # Salta il proprio IP
+            if ip_str == our_ip:
+                continue
 
-        try:
-            # Prova a contattare l'API di discovery
-            response = requests.get(f"http://{ip_str}:{BOX_DISCOVERY_PORT}/api/discover", timeout=1)
+            try:
+                print(ip_str)
+                # Prova a contattare l'API di discovery
+                response = requests.get(f"http://{ip_str}:{BOX_DISCOVERY_PORT}/api/discover", timeout=1)
 
-            if response.status_code == 200:
-                box_ip = ip_str
+                if response.status_code == 200:
+                    box_ip = ip_str
 
-                # Salva l'IP del BOX
-                with open(BOX_IP_FILE, 'w') as f:
-                    f.write(box_ip)
+                    # Salva l'IP del BOX
+                    with open(BOX_IP_FILE, 'w') as f:
+                        f.write(box_ip)
 
-                print(f"BOX trovato all'IP: {box_ip}")
-                return box_ip
-        except:
-            pass
+                    print(f"BOX trovato all'IP: {box_ip}")
+                    return box_ip
+            except:
+                pass
+    except Exception as e:
+        print(f"Errore durante la scansione della rete: {e}")
 
     print("BOX non trovato nella rete locale.")
     return None

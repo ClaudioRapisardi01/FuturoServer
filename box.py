@@ -24,7 +24,7 @@ from scapy.all import ARP, Ether, srp
 app = Flask(__name__)
 
 # Configurazione
-SERVER_URL = "http://localhost:5000"  # Indirizzo del SERVER, da modificare in produzione
+SERVER_URL = "http://app.capecchispa.net:80"  # Indirizzo del SERVER, da modificare in produzione
 BOX_CODE_FILE = "box_code.txt"
 IP_BLOCKLIST_FILE = "ip_blocklist.json"
 DEVICE_DATA_FILE = "network_devices.json"
@@ -47,84 +47,46 @@ def get_public_ip():
 
 
 def get_network_info():
-    """Ottiene informazioni sulla rete locale utilizzando comandi di sistema invece di netifaces."""
+    """Ottiene informazioni sulla rete locale con un approccio semplificato."""
     try:
         network_info = {}
 
-        # Determina l'IP privato e il gateway usando socket e subprocess
+        # Determina l'IP privato usando socket
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))  # Connessione a Google DNS per determinare l'interfaccia
         network_info['ip_private'] = s.getsockname()[0]
         s.close()
 
-        # Determina il gateway predefinito
-        if os.name == 'nt':  # Windows
-            output = subprocess.check_output("ipconfig", text=True)
-            for line in output.split('\n'):
-                if "Default Gateway" in line and ":" in line:
-                    network_info['gateway'] = line.split(":")[-1].strip()
-                    break
-        else:  # Linux/Unix
-            output = subprocess.check_output("ip route | grep default", shell=True, text=True)
-            network_info['gateway'] = output.split()[2]
+        # Semplificazione: assume che la rete sia una /24 (classe C)
+        # Prende i primi 3 ottetti dell'IP e aggiunge .0/24
+        ip_parts = network_info['ip_private'].split('.')
+        network_info['network_cidr'] = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.0/24"
 
-        # Determina la netmask
-        if os.name == 'nt':  # Windows
-            output = subprocess.check_output("ipconfig", text=True)
-            for line in output.split('\n'):
-                if "Subnet Mask" in line and ":" in line:
-                    network_info['netmask'] = line.split(":")[-1].strip()
-                    break
-        else:  # Linux/Unix
-            output = subprocess.check_output(f"ip addr show | grep {network_info['ip_private']}", shell=True, text=True)
-            # Esempio: "inet 192.168.1.100/24 ..."
-            cidr = output.split()[1].split("/")[1]
-            # Converti CIDR in netmask
-            netmask_bits = int(cidr)
-            network_info['netmask'] = socket.inet_ntoa(struct.pack('!I', (1 << 32) - (1 << (32 - netmask_bits))))
+        # Imposta netmask standard per rete /24
+        network_info['netmask'] = "255.255.255.0"
 
-        # Calcola il CIDR della rete
-        ip_interface = ipaddress.IPv4Interface(f"{network_info['ip_private']}/{network_info['netmask']}")
-        network_info['network_cidr'] = str(ip_interface.network)
+        # Per il gateway, usa l'indirizzo .1 come comune default
+        network_info['gateway'] = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.1"
 
-        # Determina il MAC address
-        if os.name == 'nt':  # Windows
-            output = subprocess.check_output("getmac /v /fo csv", shell=True, text=True)
-            lines = output.strip().split('\n')
-            for line in lines[1:]:  # Salta l'intestazione
-                parts = line.split('","')
-                if network_info['ip_private'] in line:
-                    network_info['mac_address'] = parts[2].replace('"', '')
-                    break
-        else:  # Linux/Unix
-            output = subprocess.check_output("ip link show", shell=True, text=True)
-            for line in output.split('\n'):
-                if 'link/ether' in line:
-                    network_info['mac_address'] = line.split()[1]
-                    break
+        # Per il MAC, usa un valore generico o lascia vuoto
+        network_info['mac_address'] = "00:00:00:00:00:00"  # Placeholder
 
-        # Determina l'interfaccia di rete
-        if os.name == 'nt':  # Windows
-            output = subprocess.check_output("ipconfig", text=True)
-            sections = output.split('\n\n')
-            for section in sections:
-                if network_info['ip_private'] in section:
-                    lines = section.split('\n')
-                    network_info['interface'] = lines[0].strip().rstrip(':')
-                    break
-        else:  # Linux/Unix
-            output = subprocess.check_output(f"ip addr show | grep {network_info['ip_private']} -B1", shell=True,
-                                             text=True)
-            lines = output.split('\n')
-            for line in lines:
-                if line.startswith(' ') is False and ':' in line:
-                    network_info['interface'] = line.split(':')[1].strip()
-                    break
+        # Nome dell'interfaccia (non è critico per le funzionalità base)
+        network_info['interface'] = "default"
 
+        print(f"Informazioni di rete determinate: Rete {network_info['network_cidr']}, IP {network_info['ip_private']}")
         return network_info
     except Exception as e:
         print(f"Errore nel determinare le informazioni di rete: {e}")
-        return None
+        # Fallback con valori predefiniti
+        return {
+            'interface': "default",
+            'gateway': "192.168.1.1",
+            'ip_private': "192.168.1.100",
+            'netmask': "255.255.255.0",
+            'network_cidr': "192.168.1.0/24",
+            'mac_address': "00:00:00:00:00:00"
+        }
 
 
 def measure_latency():
