@@ -77,7 +77,6 @@ def get_network_info():
             # Fallback se non riesce a ottenere il MAC
             network_info['mac_address'] = "00:00:00:00:00:00"
 
-        print(f"Informazioni di rete determinate: Rete {network_info['network_cidr']}, IP {network_info['ip_private']}")
         return network_info
     except Exception as e:
         print(f"Errore nel determinare le informazioni di rete: {e}")
@@ -130,8 +129,8 @@ def discover_box():
             ip_str = str(ip)
 
             # Salta il proprio IP
-            if ip_str == our_ip:
-                continue
+            #if ip_str == our_ip:
+            #    continue
 
             try:
                 print(ip_str)

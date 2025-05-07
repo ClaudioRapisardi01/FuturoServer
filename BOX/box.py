@@ -74,7 +74,6 @@ def get_network_info():
         # Nome dell'interfaccia (non è critico per le funzionalità base)
         network_info['interface'] = "default"
 
-        print(f"Informazioni di rete determinate: Rete {network_info['network_cidr']}, IP {network_info['ip_private']}")
         return network_info
     except Exception as e:
         print(f"Errore nel determinare le informazioni di rete: {e}")
